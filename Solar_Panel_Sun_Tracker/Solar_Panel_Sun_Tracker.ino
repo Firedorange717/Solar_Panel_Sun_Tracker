@@ -100,7 +100,7 @@ void loop() {
   //==========================================================================================
 
   //==================== Panel Movement Check ================================================
-  panelMotorControl((timeClient.getHours()*100)+timeClient.getMinutes());
+  panelMotorControl((timeClient.getHours() * 100) + timeClient.getMinutes());
   //==========================================================================================
 
   //==================== Web Page Code =======================================================
@@ -185,7 +185,7 @@ void panelMotorControl(int currTime) {
       moveStop();
       delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
       break;
-      case 1700 : //5:00 pm
+    case 1700 : //5:00 pm
       moveWest(); // Move panel to sunset position
       delay(27000);
       moveStop();
@@ -208,15 +208,15 @@ void panelReset() {
 }
 
 void moveEast() { //Triggers Eastward Movement of the Panel
-  digitalWrite(0, HIGH);
+  digitalWrite(1, HIGH);
   delay(100);
-  digitalWrite(1, LOW);
+  digitalWrite(0, LOW);
 }
 
 void moveWest() { //Triggers Westward Movement of the Panel
-  digitalWrite(0, LOW);
+  digitalWrite(1, LOW);
   delay(100);
-  digitalWrite(1, HIGH);
+  digitalWrite(0, HIGH);
 }
 
 void moveStop() { // Stops all Panel Movment
