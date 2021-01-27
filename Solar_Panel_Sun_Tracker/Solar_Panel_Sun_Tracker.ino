@@ -7,6 +7,8 @@
                  Additional Control of the Solar Panel will be avaliable through
                   The Devices Web Page Located at its IP Address. An Oled Sceen will
                     also show relavent data at a quick glance on the device itself.
+                    
+                   Examples of html Buttons https://forum.arduino.cc/index.php?topic=165982.0
 
 */
 //Firmware Revision
@@ -33,7 +35,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 //====================== WiFi Network Information =================================
 char ssid[] = SECRET_SSID;        // your network SSID (name)
-char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
+char pass[] = SECRET_PASS;        // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;                 // your network key Index number (needed only for WEP)
 
 int status = WL_IDLE_STATUS;
@@ -163,38 +165,51 @@ void loop() {
 }
 
 void panelMotorControl(int currTime) {
+  //Every hour from 5am - 5pm moves the panel for 2.84 seconds (25s/12hr)=2.84 sec
   switch (currTime) {
-    case 9000 : //9:00 am
-      panelReset(); // Panel is reset to ensure correct position
-      moveWest(); // Move panel to mid-point between morning and afternoon
-      delay(6250);
-      moveStop();
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
+    case 5000: //5:00 am Sunrise
+      moveStep();
+      break;
+    case 6000: //6:00 am
+      moveStep();
+      break;
+    case 7000: //7:00 am
+      moveStep();
+      break;
+    case 8000: //8:00 am
+      moveStep();
+      break;
+    case 9000: //9:00 am
+      moveStep();
+      break;
+    case 1000: //10:00 am
+      moveStep();
+      break;
+    case 1100: //11:00 am
+      moveStep();
       break;
     case 1200: // 12:00 pm Afternoon
-      panelReset();
-      moveWest(); // Move panel to mid-point for afternoon sun
-      delay(12500);
-      moveStop();
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
+      moveStep();
+      break;
+    case 1300 : //1:00 pm
+      moveStep();
+      break;
+    case 1400 : //2:00 pm
+      moveStep();
       break;
     case 1500 : //3:00 pm
+      moveStep();
+      break;
+    case 1600 : //4:00 pm
+      moveStep();
+      break;
+    case 1700 : //5:00 pm Sunset
+      moveStep();
+      break;
+    case 2000: //8:00 pm Panel Reset
       panelReset();
-      moveWest(); // Move panel to mid-point between afternoon and sunset
-      delay(18750);
-      moveStop();
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
       break;
-    case 1700 : //5:00 pm
-      moveWest(); // Move panel to sunset position
-      delay(27000);
-      moveStop();
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
-      break;
-    case 2000: //8:00 pm Sunset Panel Reset
-      panelReset(); //Move panel to sunrise Position
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
-      break;
+
     default:
       // No Movement Needed
       break;
@@ -205,6 +220,14 @@ void panelReset() {
   moveEast(); // Move panel all the way east ~25 Seconds +2 sec added for variation in motor speed
   delay(27000);
   moveStop();
+  delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
+}
+
+void moveStep() {
+  moveWest(); // Move panel to mid-point between morning and afternoon
+  delay(2084);
+  moveStop();
+  delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
 }
 
 void moveEast() { //Triggers Eastward Movement of the Panel
