@@ -1,7 +1,7 @@
 /*
   Solar Panel Sun Tracker
   By: Joshua Kantarges
-  Rev: 1.0
+  Rev: 1.1
 
   Description: An Arduino MKR WiFi 1010 based Sun Tracker Using NPT Time Servers.
                  Additional Control of the Solar Panel will be avaliable through
@@ -10,7 +10,7 @@
 
 */
 //Firmware Revision
-String rev = "1.0";
+String rev = "1.1";
 
 #include <NTPClient.h>
 #include <SPI.h>
