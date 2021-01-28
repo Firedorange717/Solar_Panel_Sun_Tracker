@@ -167,19 +167,19 @@ void loop() {
 void panelMotorControl(int currTime) {
   //Every hour from 5am - 5pm moves the panel for 2.84 seconds (25s/12hr)=2.84 sec
   switch (currTime) {
-    case 5000: //5:00 am Sunrise
+    case 500: //5:00 am Sunrise
       moveStep();
       break;
-    case 6000: //6:00 am
+    case 600: //6:00 am
       moveStep();
       break;
-    case 7000: //7:00 am
+    case 700: //7:00 am
       moveStep();
       break;
-    case 8000: //8:00 am
+    case 800: //8:00 am
       moveStep();
       break;
-    case 9000: //9:00 am
+    case 900: //9:00 am
       moveStep();
       break;
     case 1000: //10:00 am
