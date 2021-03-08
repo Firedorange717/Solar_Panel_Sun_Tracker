@@ -311,7 +311,7 @@ void wifiStatusInformation() {
   display.print(WiFi.localIP());
 
   //Connection Status
-  display.setCursor(20, 45);
+  display.setCursor(20, 55);
   display.print("STAT: ");
   display.print(WiFi.status());
 
