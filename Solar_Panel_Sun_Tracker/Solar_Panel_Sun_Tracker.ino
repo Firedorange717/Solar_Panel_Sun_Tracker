@@ -81,8 +81,8 @@ void setup() {
 
 void loop() {
   //Check Wifi Connection Status
-  //if (WiFi.????) {
-  // connectWiFi(); //Reconnect to wifi run WiFi method.
+  //if (status != WL_CONNECTED) {
+    //connectWiFi(); //Reconnect to wifi run WiFi method.
   //}
 
   //==================== Update Time and Oled ================================================
@@ -314,7 +314,7 @@ void wifiStatusInformation() {
   //Connection Status
   display.setCursor(20, 55);
   display.print("STATUS: ");
-  display.print(status);
+  display.print(WiFi.status());
 
   display.display();
 }
