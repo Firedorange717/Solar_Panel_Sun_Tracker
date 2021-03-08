@@ -312,8 +312,8 @@ void wifiStatusInformation() {
 
   //Connection Status
   display.setCursor(20, 55);
-  display.print("STAT: ");
-  display.print(WiFi.status());
+  display.print("STATUS: ");
+  display.print(status);
 
   display.display();
 }
