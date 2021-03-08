@@ -1,7 +1,7 @@
 /*
   Solar Panel Sun Tracker
   By: Joshua Kantarges
-  Rev: 1.1
+  Rev: 1.2
 
   Description: An Arduino MKR WiFi 1010 based Sun Tracker Using NPT Time Servers.
                  Additional Control of the Solar Panel will be avaliable through
@@ -80,9 +80,9 @@ void setup() {
 
 void loop() {
   //Check Wifi Connection Status
-  if (!WiFi.connected()) {
-    connectWiFi(); //Reconnect to wifi run WiFi method.
-  }
+  //if (WiFi.????) {
+  // connectWiFi(); //Reconnect to wifi run WiFi method.
+  //}
 
   //==================== Update Time and Oled ================================================
   wifiStatusInformation();
@@ -149,32 +149,6 @@ void loop() {
   }
   //=====================================END Web Page Code ========================================
 
-}
-
-void connectWiFi() {
-
-  //Display WiFi Connection Status
-  wifiConnecting(String(ssid));
-
-  // attempt to connect to Wifi network:
-  while (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to Network named: ");
-    Serial.println(ssid);                   // print the network name (SSID);
-
-    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    status = WiFi.begin(ssid, pass);
-    // wait 10 seconds for connection:
-    delay(10000);
-  }
-
-  //Display Connected WiFi Information
-  display.clearDisplay();
-  display.setCursor(30, 10);
-  display.print(F("Connected!"));
-  display.display();
-  delay(1000);
-  wifiStatusInformation();
-  server.begin();                           // start the web server on port 80
 }
 
 void panelMotorControl(int currTime) {
@@ -260,6 +234,31 @@ void moveStop() { // Stops all Panel Movment
   digitalWrite(1, LOW);
 }
 
+void connectWiFi() {
+
+  //Display WiFi Connection Status
+  wifiConnecting(String(ssid));
+
+  // attempt to connect to Wifi network:
+  while (status != WL_CONNECTED) {
+    Serial.print("Attempting to connect to Network named: ");
+    Serial.println(ssid);                   // print the network name (SSID);
+
+    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+    status = WiFi.begin(ssid, pass);
+    // wait 10 seconds for connection:
+    delay(10000);
+  }
+
+  //Display Connected WiFi Information
+  display.clearDisplay();
+  display.setCursor(30, 10);
+  display.print(F("Connected!"));
+  display.display();
+  delay(1000);
+  wifiStatusInformation();
+  server.begin();                           // start the web server on port 80
+}
 
 void bootScreen(String rev) {
   display.clearDisplay();
@@ -310,6 +309,11 @@ void wifiStatusInformation() {
   display.setCursor(20, 45);
   display.print("IP: ");
   display.print(WiFi.localIP());
+
+  //Connection Status
+  display.setCursor(20, 45);
+  display.print("STAT: ");
+  display.print(WiFi.status());
 
   display.display();
 }
