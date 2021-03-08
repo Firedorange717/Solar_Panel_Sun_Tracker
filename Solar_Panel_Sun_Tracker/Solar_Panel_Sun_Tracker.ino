@@ -9,6 +9,7 @@
                     also show relavent data at a quick glance on the device itself.
 
                    Examples of html Buttons https://forum.arduino.cc/index.php?topic=165982.0
+                   Arduino WiFi Library Documentation https://www.arduino.cc/en/Reference/WiFi
 
 */
 //Firmware Revision
