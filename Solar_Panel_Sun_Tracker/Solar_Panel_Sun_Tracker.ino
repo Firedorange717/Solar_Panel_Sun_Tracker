@@ -1,16 +1,18 @@
 /*
   Solar Panel Sun Tracker
   By: Joshua Kantarges
-  Rev: 1.0
+  Rev: 1.1
 
   Description: An Arduino MKR WiFi 1010 based Sun Tracker Using NPT Time Servers.
                  Additional Control of the Solar Panel will be avaliable through
                   The Devices Web Page Located at its IP Address. An Oled Sceen will
                     also show relavent data at a quick glance on the device itself.
 
+                   Examples of html Buttons https://forum.arduino.cc/index.php?topic=165982.0
+
 */
 //Firmware Revision
-String rev = "1.0";
+String rev = "1.2";
 
 #include <NTPClient.h>
 #include <SPI.h>
@@ -33,7 +35,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 //====================== WiFi Network Information =================================
 char ssid[] = SECRET_SSID;        // your network SSID (name)
-char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
+char pass[] = SECRET_PASS;        // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;                 // your network key Index number (needed only for WEP)
 
 int status = WL_IDLE_STATUS;
@@ -43,6 +45,7 @@ WiFiServer server(80);
 //===================== NPT Client Setup ==========================================
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, -25200); //offset 25200 seconds(7 hours) for Arizona Time
+int seasonOffset = 0;
 //=================================================================================
 
 void setup() {
@@ -64,30 +67,11 @@ void setup() {
     while (true);
   }
 
-  //Display WiFi Connection Status
-  wifiConnecting(String(ssid));
+  //Connect to wifi
+  connectWiFi();
 
-  // attempt to connect to Wifi network:
-  while (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to Network named: ");
-    Serial.println(ssid);                   // print the network name (SSID);
-
-    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    status = WiFi.begin(ssid, pass);
-    // wait 10 seconds for connection:
-    delay(10000);
-  }
-
-  //Display Connected WiFi Information
-  display.clearDisplay();
-  display.setCursor(30, 10);
-  display.print(F("Connected!"));
-  display.display();
-  delay(1000);
-  wifiStatusInformation();
-
-  server.begin();                           // start the web server on port 80
-  printWifiStatus();                        // you're connected now, so print out the status
+  // you're connected now, so print out the status
+  printWifiStatus();
 
   // Setup Relay Digital Pins
   pinMode(0, OUTPUT);      // Right Relay Pin
@@ -95,12 +79,17 @@ void setup() {
 }
 
 void loop() {
+  //Check Wifi Connection Status
+  if (!WiFi.connected()) {
+    connectWiFi(); //Reconnect to wifi run WiFi method.
+  }
+
   //==================== Update Time and Oled ================================================
   wifiStatusInformation();
   //==========================================================================================
 
   //==================== Panel Movement Check ================================================
-  panelMotorControl((timeClient.getHours() * 100) + timeClient.getMinutes());
+  panelMotorControl(((timeClient.getHours() * 100) + seasonOffset) + timeClient.getMinutes());
   //==========================================================================================
 
   //==================== Web Page Code =======================================================
@@ -162,38 +151,78 @@ void loop() {
 
 }
 
+void connectWiFi() {
+
+  //Display WiFi Connection Status
+  wifiConnecting(String(ssid));
+
+  // attempt to connect to Wifi network:
+  while (status != WL_CONNECTED) {
+    Serial.print("Attempting to connect to Network named: ");
+    Serial.println(ssid);                   // print the network name (SSID);
+
+    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+    status = WiFi.begin(ssid, pass);
+    // wait 10 seconds for connection:
+    delay(10000);
+  }
+
+  //Display Connected WiFi Information
+  display.clearDisplay();
+  display.setCursor(30, 10);
+  display.print(F("Connected!"));
+  display.display();
+  delay(1000);
+  wifiStatusInformation();
+  server.begin();                           // start the web server on port 80
+}
+
 void panelMotorControl(int currTime) {
+  //Every hour from 5am - 5pm moves the panel for 2.84 seconds (25s/12hr)=2.84 sec
   switch (currTime) {
-    case 9000 : //9:00 am
-      moveWest(); // Move panel to mid-point between morning and afternoon
-      delay(6250);
-      moveStop();
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
+    case 500: //5:00 am Sunrise
+      moveStep();
+      break;
+    case 600: //6:00 am
+      moveStep();
+      break;
+    case 700: //7:00 am
+      moveStep();
+      break;
+    case 800: //8:00 am
+      moveStep();
+      break;
+    case 900: //9:00 am
+      moveStep();
+      break;
+    case 1000: //10:00 am
+      moveStep();
+      break;
+    case 1100: //11:00 am
+      moveStep();
       break;
     case 1200: // 12:00 pm Afternoon
-      panelReset();
-      moveWest(); // Move panel to mid-point for afternoon sun
-      delay(12500);
-      moveStop();
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
+      moveStep();
+      break;
+    case 1300 : //1:00 pm
+      moveStep();
+      break;
+    case 1400 : //2:00 pm
+      moveStep();
       break;
     case 1500 : //3:00 pm
+      moveStep();
+      break;
+    case 1600 : //4:00 pm
+      moveStep();
+      break;
+    case 1700 : //5:00 pm Sunset
+      moveStep();
+      break;
+    case 2000: //8:00 pm Panel Reset
       panelReset();
-      moveWest(); // Move panel to mid-point between afternoon and sunset
-      delay(18750);
-      moveStop();
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
       break;
-    case 1700 : //5:00 pm
-      moveWest(); // Move panel to sunset position
-      delay(27000);
-      moveStop();
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
-      break;
-    case 2000: //8:00 pm Sunset Panel Reset
-      panelReset(); //Move panel to sunrise Position
-      delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
-      break;
+
     default:
       // No Movement Needed
       break;
@@ -204,6 +233,14 @@ void panelReset() {
   moveEast(); // Move panel all the way east ~25 Seconds +2 sec added for variation in motor speed
   delay(27000);
   moveStop();
+  delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
+}
+
+void moveStep() {
+  moveWest(); // Move panel to mid-point between morning and afternoon
+  delay(2084);
+  moveStop();
+  delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
 }
 
 void moveEast() { //Triggers Eastward Movement of the Panel
@@ -223,7 +260,10 @@ void moveStop() { // Stops all Panel Movment
   digitalWrite(1, LOW);
 }
 
+
 void bootScreen(String rev) {
+  display.clearDisplay();
+  display.setTextSize(1);             // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE);        // Draw white text
   display.setCursor(20, 20);
   display.println(F("Solar Panel Sun"));
@@ -254,7 +294,6 @@ void wifiStatusInformation() {
   timeClient.update();
   display.print(timeClient.getFormattedTime());
   display.print(" UTC -7");
-
 
   //WiFi Network Name
   display.setCursor(20, 25);
