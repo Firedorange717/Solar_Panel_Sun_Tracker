@@ -7,12 +7,12 @@
                  Additional Control of the Solar Panel will be avaliable through
                   The Devices Web Page Located at its IP Address. An Oled Sceen will
                     also show relavent data at a quick glance on the device itself.
-                    
+
                    Examples of html Buttons https://forum.arduino.cc/index.php?topic=165982.0
 
 */
 //Firmware Revision
-String rev = "1.1";
+String rev = "1.2";
 
 #include <NTPClient.h>
 #include <SPI.h>
@@ -45,6 +45,7 @@ WiFiServer server(80);
 //===================== NPT Client Setup ==========================================
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, -25200); //offset 25200 seconds(7 hours) for Arizona Time
+int seasonOffset = 0;
 //=================================================================================
 
 void setup() {
@@ -66,30 +67,11 @@ void setup() {
     while (true);
   }
 
-  //Display WiFi Connection Status
-  wifiConnecting(String(ssid));
+  //Connect to wifi
+  connectWiFi();
 
-  // attempt to connect to Wifi network:
-  while (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to Network named: ");
-    Serial.println(ssid);                   // print the network name (SSID);
-
-    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    status = WiFi.begin(ssid, pass);
-    // wait 10 seconds for connection:
-    delay(10000);
-  }
-
-  //Display Connected WiFi Information
-  display.clearDisplay();
-  display.setCursor(30, 10);
-  display.print(F("Connected!"));
-  display.display();
-  delay(1000);
-  wifiStatusInformation();
-
-  server.begin();                           // start the web server on port 80
-  printWifiStatus();                        // you're connected now, so print out the status
+  // you're connected now, so print out the status
+  printWifiStatus();
 
   // Setup Relay Digital Pins
   pinMode(0, OUTPUT);      // Right Relay Pin
@@ -97,12 +79,17 @@ void setup() {
 }
 
 void loop() {
+  //Check Wifi Connection Status
+  if (!WiFi.connected()) {
+    connectWiFi(); //Reconnect to wifi run WiFi method.
+  }
+
   //==================== Update Time and Oled ================================================
   wifiStatusInformation();
   //==========================================================================================
 
   //==================== Panel Movement Check ================================================
-  panelMotorControl((timeClient.getHours() * 100) + timeClient.getMinutes());
+  panelMotorControl(((timeClient.getHours() * 100) + seasonOffset) + timeClient.getMinutes());
   //==========================================================================================
 
   //==================== Web Page Code =======================================================
@@ -162,6 +149,32 @@ void loop() {
   }
   //=====================================END Web Page Code ========================================
 
+}
+
+void connectWiFi() {
+
+  //Display WiFi Connection Status
+  wifiConnecting(String(ssid));
+
+  // attempt to connect to Wifi network:
+  while (status != WL_CONNECTED) {
+    Serial.print("Attempting to connect to Network named: ");
+    Serial.println(ssid);                   // print the network name (SSID);
+
+    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+    status = WiFi.begin(ssid, pass);
+    // wait 10 seconds for connection:
+    delay(10000);
+  }
+
+  //Display Connected WiFi Information
+  display.clearDisplay();
+  display.setCursor(30, 10);
+  display.print(F("Connected!"));
+  display.display();
+  delay(1000);
+  wifiStatusInformation();
+  server.begin();                           // start the web server on port 80
 }
 
 void panelMotorControl(int currTime) {
@@ -281,7 +294,6 @@ void wifiStatusInformation() {
   timeClient.update();
   display.print(timeClient.getFormattedTime());
   display.print(" UTC -7");
-
 
   //WiFi Network Name
   display.setCursor(20, 25);
