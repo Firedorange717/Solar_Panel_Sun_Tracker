@@ -81,10 +81,9 @@ void setup() {
 
 void loop() {
   //Check Wifi Connection Status
-  //if (status != WL_CONNECTED) {
-    //connectWiFi(); //Reconnect to wifi run WiFi method.
-  //}
-
+  if (status != WL_CONNECTED) {
+    connectWiFi(); //Reconnect to wifi run WiFi method.
+  }
   //==================== Update Time and Oled ================================================
   wifiStatusInformation();
   //==========================================================================================
