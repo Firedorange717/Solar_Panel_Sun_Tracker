@@ -3,7 +3,7 @@
   By: Joshua Kantarges
   Rev: 1.1
 
-  Description: An Arduino MKR WiFi 1010 based Sun Tracker Using NPT Time Servers.
+  Description: An Arduino MKR WiFi 1010 based Sun Tracker Using NPT Time Servers and the Built in RTC.
                  Additional Control of the Solar Panel will be avaliable through
                   The Devices Web Page Located at its IP Address. An Oled Sceen will
                     also show relavent data at a quick glance on the device itself.
@@ -12,9 +12,9 @@
 
 */
 //Firmware Revision
-String rev = "1.2";
+String rev = "1.3";
 
-#include <NTPClient.h>
+#include <RTCZero.h>
 #include <SPI.h>
 #include <WiFiNINA.h>
 #include <Wire.h>
@@ -42,10 +42,9 @@ int status = WL_IDLE_STATUS;
 WiFiServer server(80);
 //=================================================================================
 
-//===================== NPT Client Setup ==========================================
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, -25200); //offset 25200 seconds(7 hours) for Arizona Time
-int seasonOffset = 0;
+//===================== RTCZero Client Setup ==================================
+RTCZero rtc;
+const int GMT = 7; //change this to adapt it to your time zone
 //=================================================================================
 
 void setup() {
@@ -73,23 +72,25 @@ void setup() {
   // you're connected now, so print out the status
   printWifiStatus();
 
+  //Begin RTCZero Library
+  rtc.begin();
+  rtc.setEpoch(WiFi.getTime()); // set the time for MKRWiFi1010 RTC
+
   // Setup Relay Digital Pins
   pinMode(0, OUTPUT);      // Right Relay Pin
   pinMode(1, OUTPUT);      // Left Relay Pin
 }
 
 void loop() {
-  //Check Wifi Connection Status
-  if (!WiFi.connected()) {
-    connectWiFi(); //Reconnect to wifi run WiFi method.
-  }
+  //Connect to wifi if disconnected
+  connectWiFi();
 
-  //==================== Update Time and Oled ================================================
+  //==================== Update Time on Oled =================================================
   wifiStatusInformation();
   //==========================================================================================
 
-  //==================== Panel Movement Check ================================================
-  panelMotorControl(((timeClient.getHours() * 100) + seasonOffset) + timeClient.getMinutes());
+  //==================== Move panel ==========================================================
+  panelMove(rtc.getHours() + GMT, rtc.getMinutes(), rtc.getMonth());
   //==========================================================================================
 
   //==================== Web Page Code =======================================================
@@ -114,7 +115,9 @@ void loop() {
 
             // the content of the HTTP response follows the header:
             client.print("<h1>");
-            client.print(timeClient.getFormattedTime());
+            char formattedTime[20];
+            sprintf(formattedTime, "%d:%d:%d", (rtc.getHours() + GMT), rtc.getMinutes(), rtc.getSeconds());
+            client.print(formattedTime);
             client.println("  UTC -7 </h1>");
             client.print("Click <a href=\"/E\">here</a> to move Panel Eastward<br>");
             client.print("Click <a href=\"/W\">here</a> to move Panel Westward<br>");
@@ -147,7 +150,7 @@ void loop() {
     client.stop();
     Serial.println("client disonnected");
   }
-  //=====================================END Web Page Code ========================================
+  //===================================== END Web Page Code ========================================
 
 }
 
@@ -165,80 +168,49 @@ void connectWiFi() {
     status = WiFi.begin(ssid, pass);
     // wait 10 seconds for connection:
     delay(10000);
-  }
 
-  //Display Connected WiFi Information
-  display.clearDisplay();
-  display.setCursor(30, 10);
-  display.print(F("Connected!"));
-  display.display();
-  delay(1000);
-  wifiStatusInformation();
-  server.begin();                           // start the web server on port 80
+    //Display Connected WiFi Information
+    display.clearDisplay();
+    display.setCursor(30, 10);
+    display.print(F("Connected!"));
+    display.display();
+    delay(1000);
+    wifiStatusInformation();
+    server.begin();                          // start the web server on port 80
+  }
 }
 
-void panelMotorControl(int currTime) {
-  //Every hour from 5am - 5pm moves the panel for 2.84 seconds (25s/12hr)=2.84 sec
-  switch (currTime) {
-    case 500: //5:00 am Sunrise
-      moveStep();
-      break;
-    case 600: //6:00 am
-      moveStep();
-      break;
-    case 700: //7:00 am
-      moveStep();
-      break;
-    case 800: //8:00 am
-      moveStep();
-      break;
-    case 900: //9:00 am
-      moveStep();
-      break;
-    case 1000: //10:00 am
-      moveStep();
-      break;
-    case 1100: //11:00 am
-      moveStep();
-      break;
-    case 1200: // 12:00 pm Afternoon
-      moveStep();
-      break;
-    case 1300 : //1:00 pm
-      moveStep();
-      break;
-    case 1400 : //2:00 pm
-      moveStep();
-      break;
-    case 1500 : //3:00 pm
-      moveStep();
-      break;
-    case 1600 : //4:00 pm
-      moveStep();
-      break;
-    case 1700 : //5:00 pm Sunset
-      moveStep();
-      break;
-    case 2000: //8:00 pm Panel Reset
+void panelMove(int hour, int minute, int month) {
+  //Summer Months (march to august)
+  if (month >= 3 || month <= 8) {
+    //Sunrise ~5:00am
+    //Sunset ~8:00pm
+    //~15hrs total sunlight
+    if (hour >= 5 || hour <= 19 && minute == 0 ) {
+      moveWestTime(1300);
+    } else if (hour == 20 && minute == 0) {
       panelReset();
-      break;
-
-    default:
-      // No Movement Needed
-      break;
+    }
   }
+  // Winter Months (september to february )
+  else if (month >= 9 && month <= 2) {
+    //Sunrise ~8:00am
+    //Sunset ~5:00pm
+    //~9hrs total sunlight
+    if (hour >= 8 || hour <= 16 && minute == 0 ) {
+      moveWestTime(2000);
+    } else if (hour == 17 && minute == 0) {
+      panelReset();
+    }
+  }
+
+  //delay a minute for time to change
+  delay(60000);
 }
 
 void panelReset() {
   moveEast(); // Move panel all the way east ~25 Seconds +2 sec added for variation in motor speed
   delay(27000);
-  moveStop();
-  delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
-}
-
-void moveStep() {
-  moveWest(); // Move panel to mid-point between morning and afternoon
-  delay(2084);
   moveStop();
   delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
 }
@@ -255,11 +227,16 @@ void moveWest() { //Triggers Westward Movement of the Panel
   digitalWrite(0, HIGH);
 }
 
+void moveWestTime(int ms) { //Triggers Westward Movement of the Panel for a given duration
+  digitalWrite(1, LOW);
+  delay(ms);
+  digitalWrite(0, HIGH);
+}
+
 void moveStop() { // Stops all Panel Movment
   digitalWrite(0, LOW);
   digitalWrite(1, LOW);
 }
-
 
 void bootScreen(String rev) {
   display.clearDisplay();
@@ -290,10 +267,14 @@ void wifiConnecting(String ssid) {
 
 void wifiStatusInformation() {
   display.clearDisplay();
-  display.setCursor(20, 10);
-  timeClient.update();
-  display.print(timeClient.getFormattedTime());
-  display.print(" UTC -7");
+  display.setCursor(20, 2);
+  char formattedTime[20];
+  char formattedDate[20];
+  sprintf(formattedTime, "%d:%d:%d", (rtc.getHours() + GMT), rtc.getMinutes(), rtc.getSeconds());
+  sprintf(formattedDate,"%d/%d/%d", rtc.getDay(), rtc.getMonth(), rtc.getYear());
+  display.print(formattedDate);
+  display.setCursor(20, 15);
+  display.print(formattedTime);
 
   //WiFi Network Name
   display.setCursor(20, 25);
