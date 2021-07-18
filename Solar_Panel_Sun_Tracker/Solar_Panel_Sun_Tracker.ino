@@ -1,7 +1,7 @@
 /*
   Solar Panel Sun Tracker
   By: Joshua Kantarges
-  Rev: 1.1
+  Rev: 1.3
 
   Description: An Arduino MKR WiFi 1010 based Sun Tracker Using NPT Time Servers and the Built in RTC.
                  Additional Control of the Solar Panel will be avaliable through
@@ -44,7 +44,7 @@ WiFiServer server(80);
 
 //===================== RTCZero Client Setup ==================================
 RTCZero rtc;
-const int GMT = 7; //change this to adapt it to your time zone
+const int UTC = -7; //change this to adapt it to your time zone
 //=================================================================================
 
 void setup() {
@@ -90,7 +90,7 @@ void loop() {
   //==========================================================================================
 
   //==================== Move panel ==========================================================
-  panelMove(rtc.getHours() + GMT, rtc.getMinutes(), rtc.getMonth());
+  panelMove(rtc.getHours() + UTC, rtc.getMinutes(), rtc.getMonth());
   //==========================================================================================
 
   //==================== Web Page Code =======================================================
@@ -115,8 +115,8 @@ void loop() {
 
             // the content of the HTTP response follows the header:
             client.print("<h1>");
-            char formattedTime[20];
-            sprintf(formattedTime, "%d:%d:%d", (rtc.getHours() + GMT), rtc.getMinutes(), rtc.getSeconds());
+            char formattedTime[25];
+            sprintf(formattedTime, "Time: %d:%d:%d", (rtc.getHours() + UTC), rtc.getMinutes(), rtc.getSeconds());
             client.print(formattedTime);
             client.println("  UTC -7 </h1>");
             client.print("Click <a href=\"/E\">here</a> to move Panel Eastward<br>");
@@ -156,11 +156,11 @@ void loop() {
 
 void connectWiFi() {
 
-  //Display WiFi Connection Status
-  wifiConnecting(String(ssid));
-
   // attempt to connect to Wifi network:
   while (status != WL_CONNECTED) {
+
+    //Display WiFi Connection Status
+    wifiConnecting(String(ssid));
     Serial.print("Attempting to connect to Network named: ");
     Serial.println(ssid);                   // print the network name (SSID);
 
@@ -186,8 +186,8 @@ void panelMove(int hour, int minute, int month) {
     //Sunrise ~5:00am
     //Sunset ~8:00pm
     //~15hrs total sunlight
-    if (hour >= 5 || hour <= 19 && minute == 0 ) {
-      moveWestTime(1300);
+    if (hour >= 5 && hour <= 19 && minute == 0 ) {
+      moveStep(1300);
     } else if (hour == 20 && minute == 0) {
       panelReset();
     }
@@ -197,15 +197,12 @@ void panelMove(int hour, int minute, int month) {
     //Sunrise ~8:00am
     //Sunset ~5:00pm
     //~9hrs total sunlight
-    if (hour >= 8 || hour <= 16 && minute == 0 ) {
-      moveWestTime(2000);
+    if (hour >= 8 && hour <= 16 && minute == 0 ) {
+      moveStep(2000);
     } else if (hour == 17 && minute == 0) {
       panelReset();
     }
   }
-
-  //delay a minute for time to change
-  delay(60000);
 }
 
 void panelReset() {
@@ -226,11 +223,11 @@ void moveWest() { //Triggers Westward Movement of the Panel
   delay(100);
   digitalWrite(0, HIGH);
 }
-
-void moveWestTime(int ms) { //Triggers Westward Movement of the Panel for a given duration
-  digitalWrite(1, LOW);
+void moveStep(int ms) {
+  moveWest(); // Move panel to mid-point between morning and afternoon
   delay(ms);
-  digitalWrite(0, HIGH);
+  moveStop();
+  delay(60000); //Delay 1 minute to allow for time to change and prevent repeated movement
 }
 
 void moveStop() { // Stops all Panel Movment
@@ -268,12 +265,12 @@ void wifiConnecting(String ssid) {
 void wifiStatusInformation() {
   display.clearDisplay();
   display.setCursor(20, 2);
-  char formattedTime[20];
-  char formattedDate[20];
-  sprintf(formattedTime, "%d:%d:%d", (rtc.getHours() + GMT), rtc.getMinutes(), rtc.getSeconds());
-  sprintf(formattedDate,"%d/%d/%d", rtc.getDay(), rtc.getMonth(), rtc.getYear());
+  char formattedTime[25];
+  char formattedDate[25];
+  sprintf(formattedTime, "Time: %d:%d:%d", (rtc.getHours() + UTC), rtc.getMinutes(), rtc.getSeconds());
+  sprintf(formattedDate, "Date: %d/%d/%d", rtc.getDay(), rtc.getMonth(), rtc.getYear());
   display.print(formattedDate);
-  display.setCursor(20, 15);
+  display.setCursor(20, 12);
   display.print(formattedTime);
 
   //WiFi Network Name
@@ -291,6 +288,15 @@ void wifiStatusInformation() {
   display.setCursor(20, 45);
   display.print("IP: ");
   display.print(WiFi.localIP());
+
+  display.setCursor(105, 2);
+  //Summer Months (march to august)
+  if (rtc.getMonth() >= 3 || rtc.getMonth() <= 8) {
+    display.println("SUM");
+    // Winter Months (september to february )
+  } else if (rtc.getMonth() >= 9 && rtc.getMonth() <= 2) {
+    display.println("WINT");
+  }
 
   display.display();
 }
