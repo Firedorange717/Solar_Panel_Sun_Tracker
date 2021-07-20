@@ -17,6 +17,7 @@ String rev = "1.3";
 #include <RTCZero.h>
 #include <SPI.h>
 #include <WiFiNINA.h>
+#include <utility/wifi_drv.h>
 #include <Wire.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_GFX.h>
@@ -44,11 +45,16 @@ WiFiServer server(80);
 
 //===================== RTCZero Client Setup ==================================
 RTCZero rtc;
-const int UTC = -7; //change this to adapt it to your time zone
+const int  GMT_OFFSET = -7; //change this to adapt it to your time zone
 //=================================================================================
 
 void setup() {
   Serial.begin(9600);      // initialize serial communication
+
+  //Setup RGB Led Pins for MKR WiFi1010
+  WiFiDrv::pinMode(25, OUTPUT); //Green
+  WiFiDrv::pinMode(26, OUTPUT); //Red
+  WiFiDrv::pinMode(27, OUTPUT); //Blue
 
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3c)) { // Address 0x3c for 128x64
@@ -74,7 +80,7 @@ void setup() {
 
   //Begin RTCZero Library
   rtc.begin();
-  rtc.setEpoch(WiFi.getTime()); // set the time for MKRWiFi1010 RTC
+  rtc.setEpoch(WiFi.getTime() + (GMT_OFFSET * 3600)); // set the time for MKRWiFi1010 RTC, 3600 seconds in a hour
 
   // Setup Relay Digital Pins
   pinMode(0, OUTPUT);      // Right Relay Pin
@@ -90,7 +96,7 @@ void loop() {
   //==========================================================================================
 
   //==================== Move panel ==========================================================
-  panelMove(rtc.getHours() + UTC, rtc.getMinutes(), rtc.getMonth());
+  panelMove(rtc.getHours(), rtc.getMinutes(), rtc.getMonth());
   //==========================================================================================
 
   //==================== Web Page Code =======================================================
@@ -116,9 +122,9 @@ void loop() {
             // the content of the HTTP response follows the header:
             client.print("<h1>");
             char formattedTime[25];
-            sprintf(formattedTime, "Time: %d:%d:%d", (rtc.getHours() + UTC), rtc.getMinutes(), rtc.getSeconds());
+            sprintf(formattedTime, "Time: %d:%d:%d", (rtc.getHours()), rtc.getMinutes(), rtc.getSeconds());
             client.print(formattedTime);
-            client.println("  UTC -7 </h1>");
+            client.println("  GMT_OFFSET -7 </h1>");
             client.print("Click <a href=\"/E\">here</a> to move Panel Eastward<br>");
             client.print("Click <a href=\"/W\">here</a> to move Panel Westward<br>");
             client.print("Click <a href=\"/S\">here</a> to Stop Panel movement<br>");
@@ -155,11 +161,8 @@ void loop() {
 }
 
 void connectWiFi() {
-
-  // attempt to connect to Wifi network:
-  while (status != WL_CONNECTED) {
-
-    //Display WiFi Connection Status
+  while (WiFi.status() != WL_CONNECTED) {
+    setLedColor(255, 0, 0); //red for no WiFi connection
     wifiConnecting(String(ssid));
     Serial.print("Attempting to connect to Network named: ");
     Serial.println(ssid);                   // print the network name (SSID);
@@ -168,19 +171,22 @@ void connectWiFi() {
     status = WiFi.begin(ssid, pass);
     // wait 10 seconds for connection:
     delay(10000);
-
-    //Display Connected WiFi Information
-    display.clearDisplay();
-    display.setCursor(30, 10);
-    display.print(F("Connected!"));
-    display.display();
-    delay(1000);
-    wifiStatusInformation();
-    server.begin();                          // start the web server on port 80
+    if (WiFi.status() == WL_CONNECTED) { //If were now connected
+      //Display Connected WiFi Information
+      display.clearDisplay();
+      display.setCursor(30, 10);
+      display.print(F("Connected!"));
+      display.display();
+      setLedColor(0, 255, 0); //green for connected WiFi
+      delay(1000);
+      wifiStatusInformation();
+      server.begin();    // start the web server on port 80
+    }
   }
 }
 
 void panelMove(int hour, int minute, int month) {
+  setLedColor(160, 32, 240); //Purple for panel Movement
   //Summer Months (march to august)
   if (month >= 3 || month <= 8) {
     //Sunrise ~5:00am
@@ -267,7 +273,7 @@ void wifiStatusInformation() {
   display.setCursor(20, 2);
   char formattedTime[25];
   char formattedDate[25];
-  sprintf(formattedTime, "Time: %d:%d:%d", (rtc.getHours() + UTC), rtc.getMinutes(), rtc.getSeconds());
+  sprintf(formattedTime, "Time: %d:%d:%d", (rtc.getHours()), rtc.getMinutes(), rtc.getSeconds());
   sprintf(formattedDate, "Date: %d/%d/%d", rtc.getDay(), rtc.getMonth(), rtc.getYear());
   display.print(formattedDate);
   display.setCursor(20, 12);
@@ -319,4 +325,10 @@ void printWifiStatus() {
   // print where to go in a browser:
   Serial.print("To see this page in action, open a browser to http://");
   Serial.println(ip);
+}
+
+void setLedColor(int r, int g, int b) {
+  WiFiDrv::analogWrite(25, g); //GREEN
+  WiFiDrv::analogWrite(26, r);   //RED
+  WiFiDrv::analogWrite(27, b);   //BLUE
 }
