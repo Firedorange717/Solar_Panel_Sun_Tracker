@@ -186,7 +186,6 @@ void connectWiFi() {
 }
 
 void panelMove(int hour, int minute, int month) {
-  setLedColor(160, 32, 240); //Purple for panel Movement
   //Summer Months (march to august)
   if (month >= 3 || month <= 8) {
     //Sunrise ~5:00am
@@ -212,6 +211,7 @@ void panelMove(int hour, int minute, int month) {
 }
 
 void panelReset() {
+  setLedColor(217, 255, 25); //yellow for panel Reset
   moveEast(); // Move panel all the way east ~25 Seconds +2 sec added for variation in motor speed
   delay(27000);
   moveStop();
@@ -230,6 +230,7 @@ void moveWest() { //Triggers Westward Movement of the Panel
   digitalWrite(0, HIGH);
 }
 void moveStep(int ms) {
+  setLedColor(160, 32, 240); //Purple for panel Movement
   moveWest(); // Move panel to mid-point between morning and afternoon
   delay(ms);
   moveStop();
