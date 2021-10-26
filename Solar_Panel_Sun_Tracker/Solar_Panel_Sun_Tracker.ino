@@ -88,16 +88,9 @@ void setup() {
 }
 
 void loop() {
-  //Connect to wifi if disconnected
-  connectWiFi();
-
-  //==================== Update Time on Oled =================================================
-  wifiStatusInformation();
-  //==========================================================================================
-
-  //==================== Move panel ==========================================================
-  panelMove(rtc.getHours(), rtc.getMinutes(), rtc.getMonth());
-  //==========================================================================================
+  connectWiFi(); //Connect to wifi if disconnected
+  wifiStatusInformation(); // Update Oled
+  panelMove(rtc.getHours(), rtc.getMinutes(), rtc.getMonth()); // Move Panel
 
   //==================== Web Page Code =======================================================
   WiFiClient client = server.available();   // listen for incoming clients
