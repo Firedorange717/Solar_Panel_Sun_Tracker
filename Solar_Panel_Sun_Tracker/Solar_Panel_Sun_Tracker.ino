@@ -1,18 +1,18 @@
 /*
   Solar Panel Sun Tracker
   By: Joshua Kantarges
-  Rev: 1.3
+  Rev: 1.4
 
   Description: An Arduino MKR WiFi 1010 based Sun Tracker Using NPT Time Servers and the Built in RTC.
                  Additional Control of the Solar Panel will be avaliable through
-                  The Devices Web Page Located at its IP Address. An Oled Sceen will
-                    also show relavent data at a quick glance on the device itself.
+                  The Devices Web Page Located at its IP Address. An Oled Sceen will 
+                    shows relavent data at a quick glance on the device itself.
 
                    Examples of html Buttons https://forum.arduino.cc/index.php?topic=165982.0
 
 */
 //Firmware Revision
-String rev = "1.3";
+String rev = "1.4";
 
 #include <RTCZero.h>
 #include <SPI.h>
@@ -182,7 +182,7 @@ void connectWiFi() {
 
 void panelMove(int hour, int minute, int month) {
   //Summer Months (march to august)
-  if (month >= 3 || month <= 8) {
+  if (month >= 3 && month <= 8) {
     //Sunrise ~5:00am
     //Sunset ~8:00pm
     //~15hrs total sunlight
@@ -193,7 +193,7 @@ void panelMove(int hour, int minute, int month) {
     }
   }
   // Winter Months (september to february )
-  else if (month >= 9 && month <= 2) {
+  else if (month >= 9 || month <= 2) {
     //Sunrise ~8:00am
     //Sunset ~5:00pm
     //~9hrs total sunlight
@@ -291,10 +291,10 @@ void wifiStatusInformation() {
 
   display.setCursor(105, 2);
   //Summer Months (march to august)
-  if (rtc.getMonth() >= 3 || rtc.getMonth() <= 8) {
+  if (rtc.getMonth() >= 3 && rtc.getMonth() <= 8) {
     display.println("SUM");
     // Winter Months (september to february )
-  } else if (rtc.getMonth() >= 9 && rtc.getMonth() <= 2) {
+  } else if (rtc.getMonth() >= 9 || rtc.getMonth() <= 2) {
     display.println("WINT");
   }
 
